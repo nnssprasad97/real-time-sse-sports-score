@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Sports Scores</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <div class="logo">ScoreStream</div>
+        <div class="global-stats">
+            <span class="stat-item">Clients: <span id="clients-count">0</span></span>
+            <span class="stat-item">EPS: <span id="eps-count">0.0</span></span>
+            <span class="stat-item">Dropped: <span id="dropped-count">0</span></span>
+        </div>
+        <div class="connection-status connected" data-testid="connection-status" data-status="connected">
+            Connected
+        </div>
+    </header>
+
+    <main>
+        <div class="scorecards-container" id="scorecards">
+            <!-- Scorecards injected here -->
+        </div>
+    </main>
+
+    <template id="scorecard-template">
+        <div class="scorecard">
+            <div class="scorecard-header">
+                <span class="game-clock" data-clock>00:00</span>
+                <span class="live-badge">LIVE</span>
+            </div>
+            <div class="teams-container">
+                <div class="team">
+                    <span class="team-name" data-home-team>Home</span>
+                    <span class="team-score" data-home-score>0</span>
+                </div>
+                <div class="vs">VS</div>
+                <div class="team">
+                    <span class="team-score" data-away-score>0</span>
+                    <span class="team-name" data-away-team>Away</span>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <script src="app.js"></script>
+</body>
+</html>
