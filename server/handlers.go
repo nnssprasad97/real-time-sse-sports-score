@@ -75,7 +75,7 @@ func handleEvents(mux *Multiplexer) http.HandlerFunc {
 		}
 
 		// 3. Start sending live events and heartbeats
-		heartbeatTicker := time.NewTicker(15 * time.Second)
+		heartbeatTicker := time.NewTicker(mux.HeartbeatInterval)
 		defer heartbeatTicker.Stop()
 
 		for {
@@ -85,7 +85,7 @@ func handleEvents(mux *Multiplexer) http.HandlerFunc {
 					return
 				}
 				// Reset ticker on activity
-				heartbeatTicker.Reset(15 * time.Second)
+				heartbeatTicker.Reset(mux.HeartbeatInterval)
 				sendSSE(w, event)
 				flusher.Flush()
 

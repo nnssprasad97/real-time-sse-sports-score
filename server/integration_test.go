@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -110,7 +111,6 @@ func TestIntegrationMissingLastEventIDFallback(t *testing.T) {
 	defer server.Close()
 
 	req, _ := http.NewRequest("GET", server.URL+"/events?games=g1", nil)
-	// Provide a Last-Event-ID that does NOT exist in history
 	req.Header.Set("Last-Event-ID", "unknown-id")
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -123,7 +123,6 @@ func TestIntegrationMissingLastEventIDFallback(t *testing.T) {
 	idLine, _ := reader.ReadString('\n')
 	eventLine, _ := reader.ReadString('\n')
 
-	// Should fallback to initial_state since ID wasn't found
 	if !strings.Contains(idLine, "id: 10") {
 		t.Errorf("Expected fallback to send id 10, got %s", idLine)
 	}
@@ -139,7 +138,6 @@ func TestIntegrationEmptySubscriptions(t *testing.T) {
 	server := httptest.NewServer(handleEvents(mux))
 	defer server.Close()
 
-	// No games parameter
 	resp, err := http.Get(server.URL + "/events")
 	if err != nil {
 		t.Fatal(err)
@@ -148,5 +146,83 @@ func TestIntegrationEmptySubscriptions(t *testing.T) {
 
 	if resp.StatusCode != 200 {
 		t.Errorf("Expected 200, got %d", resp.StatusCode)
+	}
+}
+
+func TestIntegrationHeartbeat(t *testing.T) {
+	mux := NewMultiplexer()
+	mux.HeartbeatInterval = 50 * time.Millisecond // very short for testing
+	go mux.Run()
+
+	server := httptest.NewServer(handleEvents(mux))
+	defer server.Close()
+
+	resp, err := http.Get(server.URL + "/events?games=g1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	reader := bufio.NewReader(resp.Body)
+	
+	done := make(chan bool)
+	go func() {
+		for {
+			line, err := reader.ReadString('\n')
+			if err != nil {
+				return
+			}
+			if strings.Contains(line, ": ping") {
+				done <- true
+				return
+			}
+		}
+	}()
+
+	select {
+	case <-done:
+		// success
+	case <-time.After(250 * time.Millisecond):
+		t.Errorf("Did not receive heartbeat within expected time")
+	}
+}
+
+func TestIntegrationStatsEndpoint(t *testing.T) {
+	mux := NewMultiplexer()
+	go mux.Run()
+	
+	// Inject some state
+	mux.EventChannel <- GameEvent{ID: "1", GameID: "g1", EventType: "score_update", CreatedAt: time.Now()}
+	time.Sleep(50 * time.Millisecond)
+
+	// Add a client
+	client := &Client{ID: "client1", Channel: make(chan GameEvent, 10), Subscriptions: map[string]bool{"g1": true}}
+	mux.AddClient(client)
+
+	// Drop an event manually to test metric
+	mux.DroppedEvents.Add(5)
+
+	server := httptest.NewServer(handleStats(mux))
+	defer server.Close()
+
+	resp, err := http.Get(server.URL + "/stats")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	var stats Stats
+	if err := json.NewDecoder(resp.Body).Decode(&stats); err != nil {
+		t.Fatal(err)
+	}
+
+	if stats.ConnectedClients != 1 {
+		t.Errorf("Expected 1 connected client, got %d", stats.ConnectedClients)
+	}
+	if stats.TotalDroppedEvents != 5 {
+		t.Errorf("Expected 5 dropped events, got %d", stats.TotalDroppedEvents)
+	}
+	if len(stats.ActiveGames) != 1 || stats.ActiveGames[0].GameID != "g1" {
+		t.Errorf("Expected active game g1")
 	}
 }

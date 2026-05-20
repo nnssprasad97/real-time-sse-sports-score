@@ -26,6 +26,7 @@ type Multiplexer struct {
 	RecentEvents    []time.Time
 	RecentEventsMu  sync.Mutex
 	StartTime       time.Time
+	HeartbeatInterval time.Duration
 }
 
 func NewMultiplexer() *Multiplexer {
@@ -35,6 +36,7 @@ func NewMultiplexer() *Multiplexer {
 		History:      make(map[string][]GameEvent),
 		LatestState:  make(map[string]*GameState),
 		StartTime:    time.Now(),
+		HeartbeatInterval: 15 * time.Second,
 	}
 }
 

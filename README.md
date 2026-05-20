@@ -60,6 +60,10 @@ Wait approximately 10 seconds for the health checks to pass. The application wil
 - **Dashboard:** [http://localhost:8080](http://localhost:8080)
 - **Stats API:** [http://localhost:8080/stats](http://localhost:8080/stats)
 
+### Dashboard Preview
+*(Imagine a beautiful UI here with glassmorphism scorecards and flashing green scores)*
+![ScoreStream Dashboard](https://via.placeholder.com/800x400.png?text=ScoreStream+Dashboard+Preview)
+
 ## Testing
 
 Comprehensive unit and integration tests are included in the `server` directory. The test suite spins up a mock `httptest.Server` and rigorously verifies SSE endpoint headers, subscription filtering, initial state dispatch, fallback behavior, and Last-Event-ID replay ordering logic.
