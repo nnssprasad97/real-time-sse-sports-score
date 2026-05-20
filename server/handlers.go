@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -45,10 +46,20 @@ func handleEvents(mux *Multiplexer) http.HandlerFunc {
 		if lastEventID != "" {
 			// 2. Replay missed events if Last-Event-ID is provided
 			for gameID := range subscriptions {
-				missedEvents := mux.GetHistoryAfter(gameID, lastEventID)
-				for _, evt := range missedEvents {
-					sendSSE(w, evt)
-					flusher.Flush()
+				missedEvents, found := mux.GetHistoryAfter(gameID, lastEventID)
+				if found {
+					for _, evt := range missedEvents {
+						sendSSE(w, evt)
+						flusher.Flush()
+					}
+				} else {
+					// Fallback: Last-Event-ID not found (too old), send initial_state
+					if state, ok := mux.GetLatestState(gameID); ok {
+						initialEvent := state.LastEvent
+						initialEvent.EventType = "initial_state"
+						sendSSE(w, initialEvent)
+						flusher.Flush()
+					}
 				}
 			}
 		} else {
@@ -99,7 +110,11 @@ func handleStats(mux *Multiplexer) http.HandlerFunc {
 }
 
 func sendSSE(w http.ResponseWriter, event GameEvent) {
-	data, _ := json.Marshal(event)
+	data, err := json.Marshal(event)
+	if err != nil {
+		log.Printf("Failed to marshal event %s: %v", event.ID, err)
+		return
+	}
 	fmt.Fprintf(w, "id: %s\n", event.ID)
 	fmt.Fprintf(w, "event: %s\n", event.EventType)
 	fmt.Fprintf(w, "data: %s\n\n", data)

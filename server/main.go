@@ -23,13 +23,8 @@ func main() {
 	http.HandleFunc("/events", handleEvents(mux))
 	http.HandleFunc("/stats", handleStats(mux))
 
-	// Serve frontend static files
+	// Serve frontend static files from Docker app directory
 	fs := http.FileServer(http.Dir("/app/frontend"))
-	// Fallback to local ./frontend if not in Docker
-	if _, err := os.Stat("/app/frontend"); os.IsNotExist(err) {
-		fs = http.FileServer(http.Dir("../frontend"))
-	}
-
 	http.Handle("/", fs)
 
 	log.Printf("Server listening on port %s", port)

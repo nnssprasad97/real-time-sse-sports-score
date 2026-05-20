@@ -23,6 +23,8 @@ type Multiplexer struct {
 	StateMutex      sync.RWMutex
 	DroppedEvents   atomic.Uint64
 	TotalEventsSeen atomic.Uint64
+	RecentEvents    []time.Time
+	RecentEventsMu  sync.Mutex
 	StartTime       time.Time
 }
 
@@ -107,16 +109,31 @@ func (m *Multiplexer) updateState(event GameEvent) {
 
 	m.History[event.GameID] = history
 	m.HistoryMutex.Unlock()
+
+	// Update sliding window for EPS (last 10 seconds)
+	m.RecentEventsMu.Lock()
+	now := time.Now()
+	m.RecentEvents = append(m.RecentEvents, now)
+	epsCutoff := now.Add(-10 * time.Second)
+	epsValidIdx := 0
+	for i, t := range m.RecentEvents {
+		if t.After(epsCutoff) {
+			epsValidIdx = i
+			break
+		}
+	}
+	m.RecentEvents = m.RecentEvents[epsValidIdx:]
+	m.RecentEventsMu.Unlock()
 }
 
-func (m *Multiplexer) GetHistoryAfter(gameID, lastEventID string) []GameEvent {
+func (m *Multiplexer) GetHistoryAfter(gameID, lastEventID string) ([]GameEvent, bool) {
 	m.HistoryMutex.RLock()
 	defer m.HistoryMutex.RUnlock()
 
 	var missedEvents []GameEvent
 	history, ok := m.History[gameID]
 	if !ok {
-		return missedEvents
+		return missedEvents, false
 	}
 
 	found := false
@@ -128,7 +145,7 @@ func (m *Multiplexer) GetHistoryAfter(gameID, lastEventID string) []GameEvent {
 			found = true
 		}
 	}
-	return missedEvents
+	return missedEvents, found
 }
 
 func (m *Multiplexer) GetLatestState(gameID string) (*GameState, bool) {
@@ -143,8 +160,10 @@ func (m *Multiplexer) GetStats() Stats {
 	clientsCount := len(m.Clients)
 	m.ClientsMutex.RUnlock()
 
-	uptime := time.Since(m.StartTime).Seconds()
-	eps := float64(m.TotalEventsSeen.Load()) / uptime
+	m.RecentEventsMu.Lock()
+	recentCount := len(m.RecentEvents)
+	m.RecentEventsMu.Unlock()
+	eps := float64(recentCount) / 10.0
 
 	m.StateMutex.RLock()
 	activeGames := make([]ActiveGameStats, 0, len(m.LatestState))
