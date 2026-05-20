@@ -22,10 +22,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         eventSource.onerror = (err) => {
             console.error("SSE Error", err);
-            statusIndicator.dataset.status = 'disconnected';
-            statusIndicator.textContent = 'Disconnected';
-            statusIndicator.className = 'connection-status disconnected';
-            // EventSource will auto-reconnect
+            if (eventSource.readyState === EventSource.CONNECTING) {
+                statusIndicator.dataset.status = 'reconnecting';
+                statusIndicator.textContent = 'Reconnecting...';
+                statusIndicator.className = 'connection-status reconnecting';
+            } else {
+                statusIndicator.dataset.status = 'disconnected';
+                statusIndicator.textContent = 'Disconnected';
+                statusIndicator.className = 'connection-status disconnected';
+            }
         };
 
         eventSource.addEventListener('initial_state', (e) => {

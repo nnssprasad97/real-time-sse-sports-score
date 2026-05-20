@@ -40,23 +40,24 @@ func handleEvents(mux *Multiplexer) http.HandlerFunc {
 			return
 		}
 
-		// 1. Send initial state
-		for gameID := range subscriptions {
-			if state, ok := mux.GetLatestState(gameID); ok {
-				initialEvent := state.LastEvent
-				initialEvent.EventType = "initial_state"
-				sendSSE(w, initialEvent)
-				flusher.Flush()
-			}
-		}
-
-		// 2. Replay missed events if Last-Event-ID is provided
 		lastEventID := r.Header.Get("Last-Event-ID")
+
 		if lastEventID != "" {
+			// 2. Replay missed events if Last-Event-ID is provided
 			for gameID := range subscriptions {
 				missedEvents := mux.GetHistoryAfter(gameID, lastEventID)
 				for _, evt := range missedEvents {
 					sendSSE(w, evt)
+					flusher.Flush()
+				}
+			}
+		} else {
+			// 1. Send initial state for fresh connection
+			for gameID := range subscriptions {
+				if state, ok := mux.GetLatestState(gameID); ok {
+					initialEvent := state.LastEvent
+					initialEvent.EventType = "initial_state"
+					sendSSE(w, initialEvent)
 					flusher.Flush()
 				}
 			}

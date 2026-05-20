@@ -57,6 +57,7 @@ func simulateGame(gameID, homeTeam, awayTeam string, eventChannel chan<- GameEve
 			AwayScore: awayScore,
 			GameClock: clock,
 			EventType: "score_update",
+			CreatedAt: time.Now(),
 		}
 
 		eventChannel <- event

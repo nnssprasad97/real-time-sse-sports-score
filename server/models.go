@@ -10,8 +10,9 @@ type GameEvent struct {
 	AwayTeam  string `json:"away_team"`
 	HomeScore int    `json:"home_score"`
 	AwayScore int    `json:"away_score"`
-	GameClock string `json:"game_clock"`
-	EventType string `json:"event_type"` // "score_update", "initial_state"
+	GameClock string    `json:"game_clock"`
+	EventType string    `json:"event_type"` // "score_update", "initial_state"
+	CreatedAt time.Time `json:"-"`
 }
 
 // ActiveGameStats represents the last update time of a game.

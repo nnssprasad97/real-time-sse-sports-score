@@ -93,10 +93,18 @@ func (m *Multiplexer) updateState(event GameEvent) {
 	history := m.History[event.GameID]
 	history = append(history, event)
 
-	// Keep up to 500 events per game to avoid unbounded memory
-	if len(history) > 500 {
-		history = history[len(history)-500:]
+	// Keep events only from the last 5 minutes
+	cutoffTime := time.Now().Add(-5 * time.Minute)
+	validIndex := 0
+	for i, evt := range history {
+		if evt.CreatedAt.After(cutoffTime) {
+			validIndex = i
+			break
+		}
 	}
+	// Slice the history array to remove old events
+	history = history[validIndex:]
+
 	m.History[event.GameID] = history
 	m.HistoryMutex.Unlock()
 }
