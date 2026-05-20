@@ -61,8 +61,7 @@ Wait approximately 10 seconds for the health checks to pass. The application wil
 - **Stats API:** [http://localhost:8080/stats](http://localhost:8080/stats)
 
 ### Dashboard Preview
-*(Imagine a beautiful UI here with glassmorphism scorecards and flashing green scores)*
-![ScoreStream Dashboard](https://via.placeholder.com/800x400.png?text=ScoreStream+Dashboard+Preview)
+![ScoreStream Dashboard](./preview.png)
 
 ## Testing
 
